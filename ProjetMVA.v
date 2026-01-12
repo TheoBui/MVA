@@ -312,44 +312,69 @@ Proof.
     rewrite Nat.leb_refl in E. discriminate.
 Qed.
 
-Lemma count_LoE_count1 : forall x hd l,
-  (x =? hd) = false -> (hd <=? x) = true ->
-  count x (LoE hd l) = 0. 
+Lemma count_LoE_count1 : forall x hd l, 
+  (x =? hd) = false -> (x <=? hd) = true -> count x (LoE hd l) = count x l.
 Proof.
   intros x hd l Hneq Hle.
-  induction l as [| a t IH]; simpl.
-  - reflexivity.
-  - destruct (a <=? hd) eqn:Ea; simpl.
-    +destruct (x =? a) eqn:Ex.
-      * apply Nat.eqb_eq in Ex; subst.
-        apply leb_complete in Ea. apply leb_complete in Hle.
-        apply Nat.eqb_neq in Hneq.
-        assert (a = hd) by (apply Nat.le_antisymm; assumption).
-        contradiction.
-      * apply IH.
-    + apply IH.
+  induction l as [| a tl IH]; simpl; [reflexivity |].
+  destruct (a <=? hd) eqn:Ea; simpl.
+    - destruct (x =? a) eqn:Ex; rewrite IH; reflexivity.
+    - destruct (x =? a) eqn:Ex; [| apply IH].
+    apply Nat.eqb_eq in Ex; subst.
+    rewrite Hle in Ea. discriminate.
+Qed.
+
+Lemma count_High_count1 : forall x hd l, 
+  (x =? hd) = false -> (x <=? hd) = false -> count x (High hd l) = count x l.
+Proof.
+  intros x hd l Hneq Hle.
+  induction l as [| a tl IH]; simpl; [reflexivity |].
+  destruct (a <=? hd) eqn:Ea; simpl.
+  - destruct (x =? a) eqn:Ex; [| apply IH].
+    apply Nat.eqb_eq in Ex; subst.
+    rewrite Ea in Hle. discriminate.
+  - destruct (x =? a) eqn:Ex; rewrite IH; reflexivity.
 Qed.
 
 From Coq Require Import Lia.
-
-Lemma count_High_count1 : forall x hd l,
-  (x =? hd) = false -> x < hd ->
-  count x (High hd l) = 0.
+Lemma count_partition : forall x pivot l, 
+  count x l = count x (LoE pivot l) + count x (High pivot l).
 Proof.
-  intros x hd l Hneq Hlt.
-  induction l as [| a t IH]; simpl; auto.
-  destruct (a <=? hd) eqn:Ea.
-  - apply IH.  
-  - destruct (x =? a) eqn:Ex.
-    + apply Nat.eqb_eq in Ex; subst.
-      apply Nat.leb_gt in Ea.  
-      lia.  
-    + simpl. rewrite Ex. apply IH.  
+  induction l; simpl; intros.
+  - reflexivity.
+  - destruct (a <=? pivot) eqn:E; simpl; rewrite IHl; destruct (x =? a); lia.
 Qed.
 
 Lemma QS_permutation : forall l, permutation (QS l) l.
-(* FILL IN HERE *) Admitted.
-
+Proof.
+  intros l. unfold permutation. intros x.
+  functional induction (QS l) using QS_ind; simpl.
+  - (* Case: nil *)
+    split; [tauto | reflexivity].
+  - (* Case: hd :: tl *)
+    destruct IHl0 as [HInLoE HC0].
+    destruct IHl1 as [HInHigh HC1].
+    split.
+    + (* Membership Branch *)
+      rewrite In_app_custom. simpl.
+      rewrite HInLoE, HInHigh.
+      split; intros H.
+      * destruct H as [H | [H | H]].
+        -- right. apply (In_LoE x hd tl); assumption.
+        -- left; assumption.
+        -- right. apply (In_High x hd tl); assumption.
+      * destruct H as [H | H].
+        -- subst. right. left. reflexivity.
+        -- destruct (x <=? hd) eqn:Ex.
+           ++ left. apply lt_LoE_rev; auto. apply leb_complete; auto.
+           ++ right. right. apply lt_High_rev; auto. apply leb_complete_conv; auto.
+    + (* Frequency Branch *)
+      rewrite count_app. 
+      simpl. 
+      rewrite HC0, HC1.
+      rewrite (count_partition x hd tl). 
+      destruct (x =? hd) eqn:Ex; lia.
+Qed.
 Lemma QS_is_sorted : forall l, sorted (QS l).
 Proof.
  intro.
