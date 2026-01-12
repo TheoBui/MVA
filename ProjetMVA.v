@@ -355,8 +355,7 @@ Proof.
     destruct IHl0 as [HInLoE HC0].
     destruct IHl1 as [HInHigh HC1].
     split.
-    + (* Membership Branch *)
-      rewrite In_app_custom. simpl.
+    + rewrite In_app_custom. simpl.
       rewrite HInLoE, HInHigh.
       split; intros H.
       * destruct H as [H | [H | H]].
@@ -368,8 +367,7 @@ Proof.
         -- destruct (x <=? hd) eqn:Ex.
            ++ left. apply lt_LoE_rev; auto. apply leb_complete; auto.
            ++ right. right. apply lt_High_rev; auto. apply leb_complete_conv; auto.
-    + (* Frequency Branch *)
-      rewrite count_app. 
+    + rewrite count_app. 
       simpl. 
       rewrite HC0, HC1.
       rewrite (count_partition x hd tl). 
